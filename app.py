@@ -5,9 +5,10 @@ Project: "An Experimental Study of Random Seed Variability and Its Impact
           on the Reproducibility of Machine Learning Model Performance"
 
 Visualization & Analysis Platform:
-- Reads results CSV exported from Google Colab.
+- Starts completely clean / empty on every launch.
+- Requires user to upload their experimental CSV exported from Google Colab.
 - Unified Seed-by-Seed Cross-Algorithm Comparison Matrix & Deviation Analysis.
-- Performance Matrix & Simple Insights & Conclusions.
+- Full Performance Matrix & Simple Viva Insights.
 """
 
 import sys
@@ -20,8 +21,6 @@ import plotly.graph_objects as go
 APP_DIR = Path(__file__).resolve().parent
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
-
-SAMPLE_CSV_PATH = APP_DIR / "data" / "seedlab_results.csv"
 
 # ---------------------------------------------------------------------------
 # Streamlit Page Setup
@@ -40,19 +39,10 @@ if css_path.exists():
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Session State Initialization
+# Session State Initialization (Starts Completely Empty Each Time)
 # ---------------------------------------------------------------------------
 if "uploaded_df" not in st.session_state:
-    if SAMPLE_CSV_PATH.exists():
-        try:
-            st.session_state.uploaded_df = pd.read_csv(SAMPLE_CSV_PATH)
-            st.session_state.data_source_label = "Multi-Algorithm Benchmark (Pre-run Colab Data)"
-        except Exception:
-            st.session_state.uploaded_df = None
-            st.session_state.data_source_label = ""
-    else:
-        st.session_state.uploaded_df = None
-        st.session_state.data_source_label = ""
+    st.session_state.uploaded_df = None
 
 if "data_source_label" not in st.session_state:
     st.session_state.data_source_label = ""
@@ -76,7 +66,7 @@ with col_nav_brand:
 
 with col_nav_meta:
     has_data = st.session_state.uploaded_df is not None
-    status_msg = "Results Loaded" if has_data else "Awaiting CSV"
+    status_msg = "Results Loaded" if has_data else "Awaiting CSV Upload"
     status_color = "#34D399" if has_data else "#94A3B8"
     st.markdown(
         f'<div style="text-align: right; padding-top: 6px; font-size: 13px; color: {status_color}; font-weight: 600;">'
@@ -94,37 +84,31 @@ st.markdown('<hr style="border: 0; border-top: 1px solid #334155; margin: 8px 0 
 st.markdown('<div class="page-header-title">Experiment Results & Analysis</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="page-header-desc">'
-    'Compare model performance across random seeds, analyze statistical variation, '
-    'and inspect the all-in-one seed comparison table across algorithms.'
+    'Upload your experiment results CSV exported from Google Colab to generate the comparative performance analysis, '
+    'matrices, and visualizations across random seeds.'
     '</div>',
     unsafe_allow_html=True
 )
 
 # ---------------------------------------------------------------------------
-# A. Upload / Demo Data Bar
+# Upload Bar (Clean, Full-Width, No Pre-run Auto-load)
 # ---------------------------------------------------------------------------
 st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-col_upload_left, col_upload_right = st.columns([2.5, 1.2])
+st.markdown('<div class="card-title">📤 Upload Experiment Results CSV</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div style="font-size: 13px; color: #94A3B8; margin-bottom: 12px;">'
+    'Upload your <code>seedlab_results.csv</code> exported from Google Colab. '
+    'Expected columns: <code>Seed</code>, <code>Accuracy</code>, <code>Training Time</code> (and optional <code>Algorithm</code>).'
+    '</div>',
+    unsafe_allow_html=True
+)
 
-with col_upload_left:
-    uploaded_file = st.file_uploader(
-        "Upload experiment CSV (from Google Colab)",
-        type=["csv"],
-        help="Expected headers: Seed, Accuracy, Training Time (and optional Algorithm)",
-        label_visibility="collapsed"
-    )
-
-with col_upload_right:
-    if st.button("⚡ Load Pre-run Colab Results", use_container_width=True):
-        if SAMPLE_CSV_PATH.exists():
-            try:
-                sample_df = pd.read_csv(SAMPLE_CSV_PATH)
-                st.session_state.uploaded_df = sample_df
-                st.session_state.data_source_label = "Multi-Algorithm Benchmark (Pre-run Colab Data)"
-                st.success("Loaded experimental data.")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error loading sample: {e}")
+uploaded_file = st.file_uploader(
+    "Upload experiment CSV (from Google Colab)",
+    type=["csv"],
+    help="Expected headers: Seed, Accuracy, Training Time (and optional Algorithm)",
+    label_visibility="collapsed"
+)
 
 # Process Uploaded CSV
 validation_error = None
@@ -133,6 +117,7 @@ if uploaded_file is not None:
         raw_df = pd.read_csv(uploaded_file)
         if raw_df.empty:
             validation_error = "The uploaded CSV file is empty."
+            st.session_state.uploaded_df = None
         else:
             col_map = {}
             for col in raw_df.columns:
@@ -151,6 +136,7 @@ if uploaded_file is not None:
             missing = [c for c in required if c not in raw_df.columns]
             if missing:
                 validation_error = f"Missing column(s): {', '.join(missing)}. Headers must include Seed, Accuracy, Training Time."
+                st.session_state.uploaded_df = None
             else:
                 raw_df["Seed"] = pd.to_numeric(raw_df["Seed"], errors="coerce")
                 raw_df["Accuracy"] = pd.to_numeric(raw_df["Accuracy"], errors="coerce")
@@ -158,11 +144,17 @@ if uploaded_file is not None:
                 
                 if raw_df.isnull().values.any():
                     validation_error = "Uploaded file contains non-numeric or missing values."
+                    st.session_state.uploaded_df = None
                 else:
                     st.session_state.uploaded_df = raw_df
-                    st.session_state.data_source_label = f"Uploaded: {uploaded_file.name}"
+                    st.session_state.data_source_label = f"Uploaded File: {uploaded_file.name}"
     except Exception as e:
         validation_error = f"Failed to parse CSV: {e}"
+        st.session_state.uploaded_df = None
+else:
+    # If no file is currently uploaded, keep the dashboard empty
+    st.session_state.uploaded_df = None
+    st.session_state.data_source_label = ""
 
 if validation_error:
     st.error(f"⚠️ {validation_error}")
@@ -178,11 +170,12 @@ df = st.session_state.uploaded_df
 if df is None or df.empty:
     st.markdown("""
     <div class="empty-upload-box">
-        <div style="font-size: 36px; margin-bottom: 8px;">📂</div>
+        <div style="font-size: 44px; margin-bottom: 10px;">📊</div>
         <div class="empty-upload-title">No experiment results loaded yet</div>
         <div class="empty-upload-text">
-            Click <b>'⚡ Load Pre-run Colab Results'</b> above for an instant demonstration, 
-            or upload your own <code>seedlab_results.csv</code> file exported from Google Colab.
+            The dashboard is currently empty. Please run your experiment in <b>Google Colab</b> using 
+            <code>colab_experiment.py</code>, then drag and drop your exported 
+            <code>seedlab_results.csv</code> file into the uploader above to view the analysis.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -261,7 +254,7 @@ else:
             
             # Sensitivity label
             if rng_a < 0.05:
-                sens = "🟢 Zero / Negligible"
+                sens = "🟢 Zero / Immune"
             elif rng_a < 0.30:
                 sens = "🟡 Low / Moderate"
             else:
