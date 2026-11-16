@@ -1,0 +1,398 @@
+/* ==========================================================================
+   SeedLab — Dark Mode Design System
+   High-contrast, crisp white text, clean academic research dashboard
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-app: #0F172A;              /* Deep Slate */
+  --surface-card: #1E293B;        /* Slate Card */
+  --surface-hover: #273549;
+  --primary-accent: #38BDF8;      /* Sky Blue / Cyan */
+  --secondary-accent: #818CF8;    /* Indigo */
+  --text-primary: #F8FAFC;        /* Crisp White */
+  --text-secondary: #94A3B8;      /* Light Slate */
+  --text-muted: #64748B;
+  --border-subtle: #334155;       /* Card Border */
+  --border-bright: #475569;
+  --success-text: #34D399;        /* Soft Emerald */
+  --success-bg: rgba(52, 211, 153, 0.12);
+  --warning-text: #FBBF24;        /* Soft Amber */
+  --warning-bg: rgba(251, 191, 36, 0.12);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+/* Base Body & Streamlit Overrides */
+html, body, [class*="css"], .stApp {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  background-color: var(--bg-app) !important;
+  color: var(--text-primary) !important;
+}
+
+header[data-testid="stHeader"] {
+  background: transparent !important;
+}
+
+div[data-testid="stSidebarNav"] {
+  display: none !important;
+}
+
+.block-container {
+  max-width: 1120px !important;
+  padding-top: 1.5rem !important;
+  padding-bottom: 2.5rem !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+
+/* --------------------------------------------------------------------------
+   Top Navigation & Brand Bar
+   -------------------------------------------------------------------------- */
+.brand-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon-box {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #0284C7, #38BDF8);
+  color: #FFFFFF;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.brand-title-text {
+  font-size: 18px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.brand-subtitle-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Segmented Control Radio */
+div[data-testid="stRadio"] > div {
+  background: #1E293B !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 4px 8px !important;
+  gap: 12px !important;
+}
+
+div[data-testid="stRadio"] label {
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+}
+
+div[data-testid="stRadio"] label:has(input:checked) {
+  color: #FFFFFF !important;
+}
+
+/* --------------------------------------------------------------------------
+   Page Header
+   -------------------------------------------------------------------------- */
+.page-header-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+
+.page-header-subtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary-accent);
+  margin-bottom: 8px;
+}
+
+.page-header-desc {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+/* --------------------------------------------------------------------------
+   Research Question Card
+   -------------------------------------------------------------------------- */
+.research-question-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+  border-left: 4px solid var(--primary-accent);
+  border-top: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.research-question-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary-accent);
+  margin-bottom: 4px;
+}
+
+.research-question-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Standard Dark Card
+   -------------------------------------------------------------------------- */
+.dashboard-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Setup Spec / Info Cards
+   -------------------------------------------------------------------------- */
+.info-card-box {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  height: 100%;
+}
+
+.info-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--primary-accent);
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.info-card-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.info-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Performance Metric Stat Cards (5 metrics)
+   -------------------------------------------------------------------------- */
+.metric-stat-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 14px;
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.metric-stat-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.metric-stat-number {
+  font-size: 24px;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.metric-stat-subtext {
+  font-size: 11px;
+  color: var(--primary-accent);
+  margin-top: 5px;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   Empty State Box
+   -------------------------------------------------------------------------- */
+.empty-upload-box {
+  background: rgba(30, 41, 59, 0.6);
+  border: 2px dashed var(--border-bright);
+  border-radius: var(--radius-lg);
+  padding: 32px 20px;
+  text-align: center;
+  margin: 16px 0;
+}
+
+.empty-upload-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 6px;
+}
+
+.empty-upload-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 500px;
+  margin: 0 auto 14px auto;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Workflow 4-Step Track (Simplified & Clean)
+   -------------------------------------------------------------------------- */
+.workflow-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  margin: 14px 0 20px 0;
+  box-shadow: var(--shadow-card);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workflow-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--primary-accent);
+  border: 1px solid var(--primary-accent);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workflow-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.workflow-arrow {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons & Inputs
+   -------------------------------------------------------------------------- */
+.stButton button {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  padding: 8px 18px !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.stButton button[kind="primary"] {
+  background: linear-gradient(135deg, #0284C7, #0EA5E9) !important;
+  border: 1px solid #38BDF8 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3) !important;
+}
+
+.stButton button[kind="primary"]:hover {
+  background: linear-gradient(135deg, #0369A1, #0284C7) !important;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.5) !important;
+}
+
+.stButton button[kind="secondary"] {
+  background: #1E293B !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: #FFFFFF !important;
+}
+
+.stButton button[kind="secondary"]:hover {
+  background: #273549 !important;
+  border-color: var(--border-bright) !important;
+}
+
+/* Streamlit Download Button */
+.stDownloadButton button {
+  background: #1E293B !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+}
+
+.stDownloadButton button:hover {
+  background: #273549 !important;
+  border-color: var(--primary-accent) !important;
+  color: var(--primary-accent) !important;
+}
+
+/* File Uploader Dark Styling */
+[data-testid="stFileUploader"] {
+  background: var(--surface-card) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+[data-testid="stFileUploader"] section {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border: 1px dashed var(--border-bright) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Dataframe clean borders */
+.stDataFrame {
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--surface-card) !important;
+}

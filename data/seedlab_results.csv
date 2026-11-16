@@ -1,0 +1,16 @@
+Algorithm,Seed,Accuracy,Training Time
+Random Forest,0,0.9441,12.771
+Random Forest,1,0.9448,14.285
+Random Forest,2,0.9460,5.578
+Random Forest,3,0.9444,7.462
+Random Forest,4,0.9407,5.573
+Neural Network (MLP),0,0.9845,3.393
+Neural Network (MLP),1,0.9852,4.929
+Neural Network (MLP),2,0.9852,3.419
+Neural Network (MLP),3,0.9857,3.390
+Neural Network (MLP),4,0.9841,4.196
+Logistic Regression,0,0.8066,0.542
+Logistic Regression,1,0.8066,0.561
+Logistic Regression,2,0.8066,0.590
+Logistic Regression,3,0.8066,0.323
+Logistic Regression,4,0.8066,0.654
