@@ -6,7 +6,8 @@ Project: "An Experimental Study of Random Seed Variability and Its Impact
 
 Visualization & Analysis Platform:
 - Starts completely clean / empty on every launch.
-- Requires user to upload their experimental CSV exported from Google Colab.
+- Awaits user CSV upload exported from Google Colab.
+- Real-time reactive status: "Awaiting CSV Upload" -> "Results Loaded".
 - Unified Seed-by-Seed Cross-Algorithm Comparison Matrix & Deviation Analysis.
 - Full Performance Matrix & Simple Viva Insights.
 """
@@ -39,19 +40,18 @@ if css_path.exists():
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Session State Initialization (Starts Completely Empty Each Time)
+# Check Uploaded File First (Ensures Top Status Bar is 100% Reactive)
 # ---------------------------------------------------------------------------
-if "uploaded_df" not in st.session_state:
-    st.session_state.uploaded_df = None
+uploaded_file = st.session_state.get("csv_uploader", None)
 
-if "data_source_label" not in st.session_state:
-    st.session_state.data_source_label = ""
-
+parsed_df = None
+validation_error = None
+data_source_label = ""
 
 # ---------------------------------------------------------------------------
 # Top Header & Brand Bar
 # ---------------------------------------------------------------------------
-col_nav_brand, col_nav_meta = st.columns([3.0, 1.2])
+col_nav_brand, col_nav_meta = st.columns([2.8, 1.4])
 
 with col_nav_brand:
     st.markdown("""
@@ -64,22 +64,14 @@ with col_nav_brand:
     </div>
     """, unsafe_allow_html=True)
 
-with col_nav_meta:
-    has_data = st.session_state.uploaded_df is not None
-    status_msg = "Results Loaded" if has_data else "Awaiting CSV Upload"
-    status_color = "#34D399" if has_data else "#94A3B8"
-    st.markdown(
-        f'<div style="text-align: right; padding-top: 6px; font-size: 13px; color: {status_color}; font-weight: 600;">'
-        f'● {status_msg}'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+# Container for reactive status badge
+status_placeholder = col_nav_meta.empty()
 
 st.markdown('<hr style="border: 0; border-top: 1px solid #334155; margin: 8px 0 20px 0;" />', unsafe_allow_html=True)
 
 
 # ===========================================================================
-# RESULTS & ANALYSIS (PRIMARY VIEW)
+# RESULTS & ANALYSIS
 # ===========================================================================
 st.markdown('<div class="page-header-title">Experiment Results & Analysis</div>', unsafe_allow_html=True)
 st.markdown(
@@ -91,7 +83,7 @@ st.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Upload Bar (Clean, Full-Width, No Pre-run Auto-load)
+# Upload Bar (Clean, Full-Width)
 # ---------------------------------------------------------------------------
 st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
 st.markdown('<div class="card-title">📤 Upload Experiment Results CSV</div>', unsafe_allow_html=True)
@@ -106,18 +98,17 @@ st.markdown(
 uploaded_file = st.file_uploader(
     "Upload experiment CSV (from Google Colab)",
     type=["csv"],
+    key="csv_uploader",
     help="Expected headers: Seed, Accuracy, Training Time (and optional Algorithm)",
     label_visibility="collapsed"
 )
 
-# Process Uploaded CSV
-validation_error = None
+# Process Uploaded CSV File
 if uploaded_file is not None:
     try:
         raw_df = pd.read_csv(uploaded_file)
         if raw_df.empty:
             validation_error = "The uploaded CSV file is empty."
-            st.session_state.uploaded_df = None
         else:
             col_map = {}
             for col in raw_df.columns:
@@ -136,7 +127,6 @@ if uploaded_file is not None:
             missing = [c for c in required if c not in raw_df.columns]
             if missing:
                 validation_error = f"Missing column(s): {', '.join(missing)}. Headers must include Seed, Accuracy, Training Time."
-                st.session_state.uploaded_df = None
             else:
                 raw_df["Seed"] = pd.to_numeric(raw_df["Seed"], errors="coerce")
                 raw_df["Accuracy"] = pd.to_numeric(raw_df["Accuracy"], errors="coerce")
@@ -144,44 +134,54 @@ if uploaded_file is not None:
                 
                 if raw_df.isnull().values.any():
                     validation_error = "Uploaded file contains non-numeric or missing values."
-                    st.session_state.uploaded_df = None
                 else:
-                    st.session_state.uploaded_df = raw_df
-                    st.session_state.data_source_label = f"Uploaded File: {uploaded_file.name}"
+                    parsed_df = raw_df
+                    data_source_label = f"Uploaded File: {uploaded_file.name}"
     except Exception as e:
         validation_error = f"Failed to parse CSV: {e}"
-        st.session_state.uploaded_df = None
-else:
-    # If no file is currently uploaded, keep the dashboard empty
-    st.session_state.uploaded_df = None
-    st.session_state.data_source_label = ""
 
 if validation_error:
     st.error(f"⚠️ {validation_error}")
-    st.session_state.uploaded_df = None
+    parsed_df = None
 
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
+# Update Status Badge in Top Bar
+# ---------------------------------------------------------------------------
+if parsed_df is not None:
+    status_placeholder.markdown(
+        f'<div style="text-align: right; padding-top: 6px; font-size: 13px; color: #34D399; font-weight: 600;">'
+        f'● Results Loaded ({uploaded_file.name})'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+else:
+    status_placeholder.markdown(
+        '<div style="text-align: right; padding-top: 6px; font-size: 13px; color: #F59E0B; font-weight: 600;">'
+        '● Awaiting CSV Upload'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+# ---------------------------------------------------------------------------
 # Display Content: Empty State OR Live Analysis
 # ---------------------------------------------------------------------------
-df = st.session_state.uploaded_df
-
-if df is None or df.empty:
+if parsed_df is None or parsed_df.empty:
     st.markdown("""
     <div class="empty-upload-box">
-        <div style="font-size: 44px; margin-bottom: 10px;">📊</div>
-        <div class="empty-upload-title">No experiment results loaded yet</div>
+        <div style="font-size: 44px; margin-bottom: 10px;">⏳</div>
+        <div class="empty-upload-title">Awaiting CSV Upload</div>
         <div class="empty-upload-text">
-            The dashboard is currently empty. Please run your experiment in <b>Google Colab</b> using 
-            <code>colab_experiment.py</code>, then drag and drop your exported 
-            <code>seedlab_results.csv</code> file into the uploader above to view the analysis.
+            No experiment results are currently loaded.<br/>
+            Please upload your <code>seedlab_results.csv</code> file exported from Google Colab into the box above 
+            to generate the comparative performance analysis, matrices, and charts.
         </div>
     </div>
     """, unsafe_allow_html=True)
 else:
     # Normalize Accuracy to percentage
-    analysis_df = df.copy()
+    analysis_df = parsed_df.copy()
     is_ratio = analysis_df["Accuracy"].max() <= 1.0
     multiplier = 100.0 if is_ratio else 1.0
     analysis_df["Accuracy_Pct"] = analysis_df["Accuracy"] * multiplier
@@ -204,7 +204,7 @@ else:
     # Case A: All Models (Unified All-in-One Comparison Matrix & Charts)
     # ---------------------------------------------------------------------------
     if has_multi_algo and selected_algo == "📊 All Models (Comparison Table & Matrix)":
-        st.caption(f"Comparing **{analysis_df['Algorithm'].nunique()} algorithms** side-by-side across all seeds — {st.session_state.data_source_label}")
+        st.caption(f"Comparing **{analysis_df['Algorithm'].nunique()} algorithms** side-by-side across all seeds — {data_source_label}")
 
         # =======================================================================
         # 1. PRIMARY ALL-IN-ONE SEED COMPARISON TABLE (PIVOT MATRIX)
@@ -410,7 +410,7 @@ else:
         max_acc = float(filtered_df["Accuracy_Pct"].max())
         range_acc = float(max_acc - min_acc)
 
-        st.caption(f"Analyzing **{algo_label}** across **{n_runs} experimental runs** — {st.session_state.data_source_label}")
+        st.caption(f"Analyzing **{algo_label}** across **{n_runs} experimental runs** — {data_source_label}")
 
         # 5 Key Metric Cards
         col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
