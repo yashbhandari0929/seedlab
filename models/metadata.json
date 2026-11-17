@@ -1,0 +1,39 @@
+{
+  "project": "SeedLab AI",
+  "dataset": "MNIST Handwritten Digits",
+  "dataset_source": "https://www.kaggle.com/datasets/hojjatk/mnist-dataset",
+  "num_classes": 10,
+  "class_labels": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "input_shape": [
+    1,
+    784
+  ],
+  "image_dimensions": [
+    28,
+    28
+  ],
+  "pixel_scaling": "0_to_1",
+  "preprocessing": {
+    "flatten": true,
+    "center_of_mass": true,
+    "normalization": "divide_by_255",
+    "invert_colors": false
+  },
+  "model_files": {
+    "Random Forest": "random_forest.joblib",
+    "MLP Neural Network": "mlp.joblib",
+    "Logistic Regression": "logistic_regression.joblib"
+  },
+  "export_timestamp": "2026-11-17T12:14:23Z"
+}

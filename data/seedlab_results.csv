@@ -1,16 +1,16 @@
-Algorithm,Seed,Accuracy,Training Time
-Random Forest,0,0.9441,12.771
-Random Forest,1,0.9448,14.285
-Random Forest,2,0.9460,5.578
-Random Forest,3,0.9444,7.462
-Random Forest,4,0.9407,5.573
-Neural Network (MLP),0,0.9845,3.393
-Neural Network (MLP),1,0.9852,4.929
-Neural Network (MLP),2,0.9852,3.419
-Neural Network (MLP),3,0.9857,3.390
-Neural Network (MLP),4,0.9841,4.196
-Logistic Regression,0,0.8066,0.542
-Logistic Regression,1,0.8066,0.561
-Logistic Regression,2,0.8066,0.590
-Logistic Regression,3,0.8066,0.323
-Logistic Regression,4,0.8066,0.654
+Algorithm,Seed,Accuracy,Precision,Recall,F1 Score,Training Time
+Random Forest,0,0.946,0.9465,0.9455,0.9459,0.718
+Random Forest,1,0.9396,0.9397,0.9391,0.9392,0.751
+Random Forest,2,0.94,0.94,0.9394,0.9396,0.709
+Random Forest,3,0.9424,0.9423,0.942,0.9421,0.713
+Random Forest,4,0.946,0.9464,0.9455,0.9458,0.695
+MLP Neural Network,0,0.9468,0.9472,0.9461,0.9464,5.235
+MLP Neural Network,1,0.9432,0.9432,0.9425,0.9427,5.692
+MLP Neural Network,2,0.9416,0.9413,0.9406,0.9408,5.912
+MLP Neural Network,3,0.9436,0.9439,0.9428,0.9431,5.357
+MLP Neural Network,4,0.9384,0.9386,0.9375,0.9378,5.096
+Logistic Regression,0,0.9164,0.9157,0.9152,0.9153,14.058
+Logistic Regression,1,0.9164,0.9157,0.9153,0.9154,13.866
+Logistic Regression,2,0.9156,0.9148,0.9144,0.9145,13.566
+Logistic Regression,3,0.9176,0.9169,0.9165,0.9166,13.809
+Logistic Regression,4,0.9168,0.9161,0.9157,0.9158,13.625

@@ -396,3 +396,107 @@ div[data-testid="stRadio"] label:has(input:checked) {
   border-radius: var(--radius-md) !important;
   background: var(--surface-card) !important;
 }
+
+
+/* --------------------------------------------------------------------------
+   Vertical Left Sidebar Navigation
+   -------------------------------------------------------------------------- */
+div[data-testid="stSidebar"] {
+  background-color: #0B1120 !important;
+  border-right: 1px solid #1E293B !important;
+}
+
+div[data-testid="stSidebar"] .block-container {
+  padding-top: 1.8rem !important;
+  padding-left: 1.2rem !important;
+  padding-right: 1.2rem !important;
+}
+
+.sidebar-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1E293B;
+}
+
+.sidebar-brand-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #0284C7, #38BDF8);
+  color: #FFFFFF;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+}
+
+.sidebar-brand-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.sidebar-brand-subtitle {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sidebar-nav-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748B;
+  margin-bottom: 10px;
+}
+
+/* Sidebar Radio Button Styling */
+div[data-testid="stSidebar"] div[data-testid="stRadio"] > div {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+div[data-testid="stSidebar"] div[data-testid="stRadio"] label {
+  background: #131E31 !important;
+  border: 1px solid #1E293B !important;
+  border-radius: 8px !important;
+  padding: 12px 14px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  color: #94A3B8 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+div[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {
+  background: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+div[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(56, 189, 248, 0.12)) !important;
+  border: 1px solid #38BDF8 !important;
+  color: #38BDF8 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.2) !important;
+}
+
+/* Hide Streamlit default radio circle in sidebar for clean tab-button look */
+div[data-testid="stSidebar"] div[data-testid="stRadio"] input[type="radio"] {
+  accent-color: #38BDF8 !important;
+}
