@@ -31,6 +31,26 @@ if css_path.exists():
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
+# Reactive Session State Synchronization
+# ---------------------------------------------------------------------------
+uploader_file = st.session_state.get("csv_uploader", None)
+if uploader_file is not None and st.session_state.get("experiment_df", None) is None:
+    try:
+        import pandas as pd
+        from utils.model_selection import evaluate_and_select_best_model
+        raw_df = pd.read_csv(uploader_file)
+        if not raw_df.empty:
+            st.session_state["experiment_df"] = raw_df
+            st.session_state["data_source_label"] = uploader_file.name
+            st.session_state["model_selection_results"] = evaluate_and_select_best_model(raw_df)
+    except Exception:
+        pass
+elif uploader_file is None and st.session_state.get("experiment_df", None) is not None:
+    st.session_state["experiment_df"] = None
+    st.session_state["data_source_label"] = ""
+    st.session_state["model_selection_results"] = None
+
+# ---------------------------------------------------------------------------
 # Left Sidebar Navigation (EXACTLY TWO OPTIONS)
 # ---------------------------------------------------------------------------
 with st.sidebar:

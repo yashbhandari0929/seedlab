@@ -44,12 +44,16 @@ def render_experiment_dashboard():
         label_visibility="collapsed"
     )
 
-    parsed_df = st.session_state.get("experiment_df", None)
+    parsed_df = None
     validation_error = None
-    data_source_label = st.session_state.get("data_source_label", "")
+    data_source_label = ""
 
     # Process newly uploaded CSV File
-    if uploaded_file is not None:
+    if uploaded_file is None:
+        st.session_state["experiment_df"] = None
+        st.session_state["data_source_label"] = ""
+        st.session_state["model_selection_results"] = None
+    else:
         try:
             raw_df = pd.read_csv(uploaded_file)
             if raw_df.empty:
