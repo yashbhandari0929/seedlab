@@ -11,12 +11,10 @@ Official Kaggle Benchmark Dataset:
 - Total Samples: 70,000 entries (28x28 grayscale images across 10 classes)
 
 Outputs Generated for SeedLab AI:
-1. 'seedlab_results.csv' (Accuracy, Precision, Recall, F1 Score, Training Time across 5 seeds)
+1. 'seedlab_results.csv' (Authentic Accuracy, Precision, Recall, F1, Time across 5 seeds)
 2. 'seedlab_model_artifacts.zip' containing:
-   - random_forest.joblib
-   - mlp.joblib
-   - logistic_regression.joblib
-   - metadata.json
+   - Calibrated estimators: random_forest.joblib, mlp.joblib, logistic_regression.joblib
+   - metadata.json (Held-out test metrics, Brier calibration scores, confusion matrices)
 
 How to Run in Google Colab:
 1. Open https://colab.research.google.com
@@ -31,7 +29,7 @@ import os
 import time
 import json
 import zipfile
-from datetime import datetime
+from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import joblib
@@ -41,7 +39,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 print("=" * 80)
 print("Step 1: Loading Official 70,000-Sample Kaggle / Benchmark Dataset (MNIST 784)...")
@@ -58,7 +57,7 @@ print("\n" + "=" * 80)
 print("Step 2: Creating Fixed Stratified Train-Test Split (Seed = 42)...")
 print("=" * 80)
 
-# Stratified split: 10,000 training, 2,500 holdout test
+# Stratified split: 10,000 training partition, 2,500 held-out test partition
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -67,7 +66,16 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y,
     random_state=42
 )
-print(f"Training partition: {len(X_train):,} samples | Holdout Test partition: {len(X_test):,} samples")
+print(f"Training partition: {len(X_train):,} samples | Held-out Test partition: {len(X_test):,} samples")
+
+# Precompute one-hot matrix of test set for multi-class Brier score evaluation
+y_test_onehot = np.zeros((len(y_test), 10), dtype=np.float32)
+for i, target_class in enumerate(y_test):
+    y_test_onehot[i, target_class] = 1.0
+
+def compute_multiclass_brier(y_true_onehot, y_probs):
+    """Computes standard multi-class Brier score (mean squared error across classes)."""
+    return float(np.mean(np.sum((y_probs - y_true_onehot) ** 2, axis=1)))
 
 print("\n" + "=" * 80)
 print("Step 3: Benchmarking Algorithm Families Across Seeds [0, 1, 2, 3, 4]...")
@@ -133,7 +141,7 @@ results_df.to_csv(CSV_FILENAME, index=False)
 print(f"\nSuccessfully generated '{CSV_FILENAME}'")
 
 print("\n" + "=" * 80)
-print("Step 5: Selecting Representative Estimators & Exporting Artifacts...")
+print("Step 5: Calibrating Representative Estimators with CalibratedClassifierCV...")
 print("=" * 80)
 
 os.makedirs("models", exist_ok=True)
@@ -144,26 +152,23 @@ artifact_map = {
     "Logistic Regression": "logistic_regression.joblib"
 }
 
-# Rule: Pick representative estimator closest to each family's mean F1-score
-for model_name, file_name in artifact_map.items():
-    runs = fitted_models[model_name]
-    mean_f1 = np.mean([r["f1"] for r in runs])
-    best_run = min(runs, key=lambda r: abs(r["f1"] - mean_f1))
-    
-    out_path = os.path.join("models", file_name)
-    joblib.dump(best_run["estimator"], out_path, compress=3)
-    print(f"Saved {model_name} (Representative Seed {best_run['seed']}, F1={best_run['f1']:.4f}) -> {out_path}")
-
-# Write metadata.json
 metadata = {
     "project": "SeedLab AI",
-    "dataset": "MNIST Handwritten Digits",
+    "dataset": "MNIST 70,000 Handwritten Digits (National Institute of Standards and Technology)",
     "dataset_source": "https://www.kaggle.com/datasets/hojjatk/mnist-dataset",
+    "train_samples": int(len(X_train)),
+    "heldout_test_samples": int(len(X_test)),
     "num_classes": 10,
     "class_labels": list(range(10)),
     "input_shape": [1, 784],
     "image_dimensions": [28, 28],
     "pixel_scaling": "0_to_1",
+    "calibration": {
+        "status": "Calibrated",
+        "method": "sigmoid (Platt scaling)",
+        "cv_scheme": "3-fold cross-validation on training partition",
+        "data_leakage_prevention": "Test set was strictly held out and NEVER seen during base training or calibration"
+    },
     "preprocessing": {
         "flatten": True,
         "center_of_mass": True,
@@ -171,9 +176,67 @@ metadata = {
         "invert_colors": False
     },
     "model_files": artifact_map,
-    "export_timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    "models_evaluated": {},
+    "export_timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 }
 
+for model_name, file_name in artifact_map.items():
+    runs = fitted_models[model_name]
+    mean_f1 = np.mean([r["f1"] for r in runs])
+    rep_run = min(runs, key=lambda r: abs(r["f1"] - mean_f1))
+    rep_seed = rep_run["seed"]
+    base_estimator = rep_run["estimator"]
+
+    # Compute uncalibrated Brier score on test set
+    raw_probs = base_estimator.predict_proba(X_test)
+    raw_brier = compute_multiclass_brier(y_test_onehot, raw_probs)
+
+    # Train calibrated classifier using 3-fold cross-validation on X_train (Zero test set leakage!)
+    calibrated_clf = CalibratedClassifierCV(
+        estimator=models_config[model_name](rep_seed),
+        method="sigmoid",
+        cv=3
+    )
+    calibrated_clf.fit(X_train, y_train)
+
+    # Evaluate on held-out test partition
+    cal_pred = calibrated_clf.predict(X_test)
+    cal_probs = calibrated_clf.predict_proba(X_test)
+
+    cal_acc = float(accuracy_score(y_test, cal_pred))
+    cal_prec = float(precision_score(y_test, cal_pred, average="macro", zero_division=0))
+    cal_rec = float(recall_score(y_test, cal_pred, average="macro", zero_division=0))
+    cal_f1 = float(f1_score(y_test, cal_pred, average="macro", zero_division=0))
+    cal_brier = compute_multiclass_brier(y_test_onehot, cal_probs)
+    cal_cm = confusion_matrix(y_test, cal_pred).tolist()
+
+    print(f"\nCalibrated {model_name} (Representative Seed {rep_seed}):")
+    print(f"  Test Accuracy:     {cal_acc*100:.2f}%")
+    print(f"  Test Macro F1:     {cal_f1*100:.2f}%")
+    print(f"  Raw Brier Score:   {raw_brier:.4f}")
+    print(f"  Calibrated Brier:  {cal_brier:.4f} (Improvement: {raw_brier - cal_brier:+.4f})")
+
+    out_path = os.path.join("models", file_name)
+    joblib.dump(calibrated_clf, out_path, compress=3)
+    print(f"  Saved calibrated estimator -> {out_path}")
+
+    metadata["models_evaluated"][model_name] = {
+        "representative_seed": rep_seed,
+        "is_calibrated": True,
+        "calibration_method": "CalibratedClassifierCV(method='sigmoid', cv=3)",
+        "heldout_test_metrics": {
+            "accuracy": round(cal_acc, 4),
+            "macro_precision": round(cal_prec, 4),
+            "macro_recall": round(cal_rec, 4),
+            "macro_f1": round(cal_f1, 4),
+            "uncalibrated_brier_score": round(raw_brier, 4),
+            "calibrated_brier_score": round(cal_brier, 4),
+            "brier_improvement": round(raw_brier - cal_brier, 4)
+        },
+        "confusion_matrix": cal_cm
+    }
+
+# Write metadata.json
 with open(os.path.join("models", "metadata.json"), "w", encoding="utf-8") as f:
     json.dump(metadata, f, indent=2)
 print("Saved models/metadata.json")

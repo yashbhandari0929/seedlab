@@ -1,7 +1,7 @@
 """
 SeedLab AI — View: Model Prediction & Interactive Digit Recognition.
-Handles automatic best model display, drawing canvas, preprocessed previews,
-probability distribution, 3-model comparison, and prediction history.
+Adheres strictly to scientific rigor, authentic probability reporting,
+CalibratedClassifierCV validation, Brier scores, and zero fabricated metrics.
 """
 
 from pathlib import Path
@@ -19,7 +19,7 @@ from utils.prediction import predict_digit_probabilities, predict_across_all_mod
 
 
 def render_model_prediction():
-    """Renders the Live Digit Prediction and Best Model Evaluation interface."""
+    """Renders the Live Digit Prediction and Authentic Evaluation interface."""
     st.markdown('<div class="page-header-title">Model Prediction</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="page-header-subtitle">Draw a handwritten digit and let your selected machine learning model recognize it.</div>',
@@ -27,8 +27,8 @@ def render_model_prediction():
     )
     st.markdown(
         '<div class="page-header-desc">'
-        'This interface uses the winning estimator selected from your experimental seed analysis. '
-        'Draw any single digit (0–9) on the canvas below to run live inference through our standardized MNIST preprocessing pipeline.'
+        'Inference is performed strictly using the loaded fitted estimator without in-app training. '
+        'All displayed probabilities originate directly from the model\'s <code>predict_proba()</code> execution.'
         '</div>',
         unsafe_allow_html=True
     )
@@ -38,16 +38,16 @@ def render_model_prediction():
     # ---------------------------------------------------------------------------
     selection_res = st.session_state.get("model_selection_results", None)
 
-    # If user hasn't uploaded CSV yet, check if data/seedlab_results.csv is available for one-click load
+    # Fallback to local authentic results if not uploaded yet
     if selection_res is None:
         local_csv = Path(__file__).resolve().parent.parent / "data" / "seedlab_results.csv"
-        st.warning("⚠️ No experiment CSV results loaded yet.")
-        col_w1, col_w2 = st.columns([1.5, 2.5])
+        st.warning("⚠️ No experiment CSV results currently loaded in session.")
+        col_w1, col_w2 = st.columns([1.6, 2.4])
         with col_w1:
-            if local_csv.exists() and st.button("⚡ Load Benchmark Experiment Results", use_container_width=True):
+            if local_csv.exists() and st.button("⚡ Load Authentic Experiment Benchmark Data", use_container_width=True):
                 bench_df = pd.read_csv(local_csv)
                 st.session_state["experiment_df"] = bench_df
-                st.session_state["data_source_label"] = "Loaded: data/seedlab_results.csv (Benchmark)"
+                st.session_state["data_source_label"] = "Loaded: data/seedlab_results.csv (Authentic)"
                 selection_res = evaluate_and_select_best_model(bench_df)
                 st.session_state["model_selection_results"] = selection_res
                 st.rerun()
@@ -69,12 +69,15 @@ def render_model_prediction():
 
     suite = st.session_state["model_suite"]
     winning_estimator = suite["models"].get(winning_model_name, None)
+    meta = suite.get("metadata", {}) or {}
+    models_meta = meta.get("models_evaluated", {}) if meta else {}
+    winner_meta = models_meta.get(winning_model_name, {})
 
     # ---------------------------------------------------------------------------
     # SECTION A: Selected Model Information & Comparison Matrix
     # ---------------------------------------------------------------------------
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title">🏆 Selected Best Model: Dynamic Selection</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">🏆 Automatically Selected Best Model</div>', unsafe_allow_html=True)
 
     col_card1, col_card2, col_card3, col_card4 = st.columns([1.8, 1.2, 1.2, 1.4])
 
@@ -105,11 +108,12 @@ def render_model_prediction():
         """, unsafe_allow_html=True)
 
     with col_card4:
-        artifact_status = "🟢 Loaded & Ready" if winning_estimator is not None else "🔴 Artifact Missing"
+        is_cal = winner_meta.get("is_calibrated", False)
+        cal_tag = "🟢 Calibrated" if is_cal else "🟡 Uncalibrated"
         status_color = "#34D399" if winning_estimator is not None else "#F87171"
         st.markdown(f"""
-        <div style="font-size: 12px; color: #94A3B8; font-weight: 600;">Model Artifact Status</div>
-        <div style="font-size: 14px; font-weight: 700; color: {status_color}; margin-top: 4px;">{artifact_status}</div>
+        <div style="font-size: 12px; color: #94A3B8; font-weight: 600;">Probability Calibration</div>
+        <div style="font-size: 14px; font-weight: 700; color: {status_color}; margin-top: 4px;">{cal_tag}</div>
         <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">Avg Train Time: {best_model_info['mean_training_time']:.2f}s</div>
         """, unsafe_allow_html=True)
 
@@ -142,9 +146,7 @@ def render_model_prediction():
     if winning_estimator is None:
         st.markdown('<hr style="border: 0; border-top: 1px solid #334155; margin: 12px 0;" />', unsafe_allow_html=True)
         st.warning(f"⚠️ Model artifact for '{winning_model_name}' was not found in the local models/ directory.")
-        st.markdown(
-            "Upload your **seedlab_model_artifacts.zip** exported from Google Colab to load the fitted estimator:"
-        )
+        st.markdown("Upload your **seedlab_model_artifacts.zip** exported from Google Colab:")
         up_zip = st.file_uploader(
             "Upload Model Artifacts ZIP",
             type=["zip"],
@@ -178,7 +180,6 @@ def render_model_prediction():
             unsafe_allow_html=True
         )
 
-        # Canvas dynamic key to allow one-click reset
         if "canvas_version" not in st.session_state:
             st.session_state["canvas_version"] = 0
 
@@ -217,35 +218,41 @@ def render_model_prediction():
 
     if predict_clicked:
         if canvas_result is not None and canvas_result.image_data is not None:
-            # Preprocess canvas RGBA image
-            norm_28, flat_784, is_blank, meta = preprocess_canvas_image(canvas_result.image_data)
+            norm_28, flat_784, is_blank, meta_prep = preprocess_canvas_image(canvas_result.image_data)
             
             if is_blank:
                 st.warning("⚠️ Please draw a digit (0–9) on the canvas before predicting.")
             else:
-                # Infer with Winning Model
-                pred_result = predict_digit_probabilities(winning_estimator, flat_784)
+                # Actual inference through winning estimator
+                pred_result = predict_digit_probabilities(winning_estimator, flat_784, winner_meta)
                 
-                # Infer with all 3 models for comparison
-                all_models_pred = predict_across_all_models(suite["models"], flat_784)
+                # Multi-model cross evaluation for authentic comparison
+                all_models_pred = predict_across_all_models(suite["models"], flat_784, models_meta)
 
                 active_payload = {
                     "model_name": winning_model_name,
                     "predicted_digit": pred_result["predicted_digit"],
-                    "confidence": pred_result["confidence"],
+                    "predicted_class_probability": pred_result["predicted_class_probability"],
+                    "probability_label": pred_result["probability_label"],
+                    "is_calibrated": pred_result["is_calibrated"],
+                    "calibration_status": pred_result["calibration_status"],
                     "probabilities": pred_result["probabilities"],
+                    "scientific_interpretation": pred_result["scientific_interpretation"],
+                    "caution_note": pred_result["caution_note"],
                     "norm_28": norm_28,
                     "all_models": all_models_pred,
                     "timestamp": datetime.now().strftime("%H:%M:%S")
                 }
                 st.session_state["active_prediction"] = active_payload
 
-                # Add to history (keep top 5 latest)
+                # Add to history
                 history_entry = {
                     "Time": active_payload["timestamp"],
                     "Model": winning_model_name,
-                    "Digit": active_payload["predicted_digit"],
-                    "Confidence": f"{active_payload['confidence']*100:.1f}%"
+                    "Predicted Digit": active_payload["predicted_digit"],
+                    "Probability": f"{active_payload['predicted_class_probability']*100:.2f}%",
+                    "Status": "Calibrated" if pred_result["is_calibrated"] else "Raw",
+                    "User Feedback": "None"
                 }
                 st.session_state["prediction_history"].insert(0, history_entry)
                 st.session_state["prediction_history"] = st.session_state["prediction_history"][:5]
@@ -266,40 +273,46 @@ def render_model_prediction():
             """, unsafe_allow_html=True)
         else:
             digit = active_pred["predicted_digit"]
-            conf_pct = active_pred["confidence"] * 100
+            prob_val = active_pred["predicted_class_probability"]
+            prob_pct = prob_val * 100.0
+            prob_label = active_pred["probability_label"]
+            cal_status = active_pred["calibration_status"]
+            interpretation = active_pred["scientific_interpretation"]
+            caution_note = active_pred["caution_note"]
 
-            # Prominent Predicted Digit Banner
+            # Scientific Display Block as Required
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 2px solid #38BDF8; border-radius: 12px; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);">
-                <div>
-                    <div style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: #94A3B8; letter-spacing: 0.05em;">Recognized Digit</div>
-                    <div style="font-size: 52px; font-weight: 900; color: #FFFFFF; line-height: 1; margin-top: 4px;">{digit}</div>
+            <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 2px solid #38BDF8; border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94A3B8; letter-spacing: 0.08em;">PREDICTED DIGIT</div>
+                        <div style="font-size: 56px; font-weight: 900; color: #FFFFFF; line-height: 1; margin-top: 4px;">{digit}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94A3B8; letter-spacing: 0.08em;">{prob_label.upper()}</div>
+                        <div style="font-size: 32px; font-weight: 800; color: #34D399; margin-top: 2px;">{prob_pct:.2f}%</div>
+                        <div style="font-size: 11.5px; color: #38BDF8; font-weight: 600;">MODEL: {winning_model_name}</div>
+                    </div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 12px; font-weight: 600; color: #94A3B8;">Confidence Score</div>
-                    <div style="font-size: 32px; font-weight: 800; color: #34D399; margin-top: 2px;">{conf_pct:.1f}%</div>
-                    <div style="font-size: 11px; color: #38BDF8; font-weight: 600;">{winning_model_name}</div>
+                <hr style="border: 0; border-top: 1px solid #334155; margin: 12px 0 10px 0;" />
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <div>
+                        <span style="color: #94A3B8; font-weight: 600;">PROBABILITY STATUS:</span> 
+                        <span style="color: #F8FAFC; font-weight: 700;">{cal_status}</span>
+                    </div>
+                    <div style="color: #CBD5E1; font-style: italic;">
+                        {interpretation}
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Preprocessing Pipeline Preview (Side-by-Side: 28x28 Preprocessed Array)
-            with st.expander("🔬 View MNIST Preprocessed 28×28 Tensor", expanded=False):
-                col_pv1, col_pv2 = st.columns([1, 2])
-                with col_pv1:
-                    # Upscale 28x28 normalized array for clear crisp display
-                    upscaled = (active_pred["norm_28"] * 255.0).astype(np.uint8)
-                    st.image(upscaled, width=140, caption="28×28 Centered MNIST Input", clamp=True)
-                with col_pv2:
-                    st.markdown("""
-                    <div style="font-size: 12.5px; color: #94A3B8; line-height: 1.5;">
-                        <b>Preprocessing Pipeline Steps Applied:</b><br/>
-                        1. Grayscale conversion & bounding box extraction.<br/>
-                        2. Aspect-ratio preserving resize into 20×20 bounding box.<br/>
-                        3. Center-of-mass shift onto 28×28 matrix.<br/>
-                        4. Normalization to [0.0, 1.0] float32 feature tensor (1×784).
-                    </div>
-                    """, unsafe_allow_html=True)
+            # Explanatory scientific caution note
+            st.markdown(f"""
+            <div style="font-size: 11.5px; color: #94A3B8; background: rgba(15, 23, 42, 0.5); border-left: 3px solid #818CF8; padding: 8px 12px; border-radius: 0 6px 6px 0; margin-bottom: 16px; line-height: 1.4;">
+                ℹ️ <b>Scientific Note:</b> {caution_note}
+            </div>
+            """, unsafe_allow_html=True)
 
             # 0–9 Probability Distribution Bar Chart
             probs = active_pred["probabilities"]
@@ -311,22 +324,41 @@ def render_model_prediction():
                 x=digits,
                 y=[p * 100 for p in probs],
                 marker_color=colors,
-                hovertemplate="<b>Digit %{x}</b><br>Probability: %{y:.1f}%<extra></extra>",
-                text=[f"{p*100:.1f}%" if p > 0.05 else "" for p in probs],
+                hovertemplate="<b>Digit %{x}</b><br>Probability: %{y:.2f}%<extra></extra>",
+                text=[f"{p*100:.1f}%" if p > 0.03 else "" for p in probs],
                 textposition="outside",
                 textfont=dict(color="#FFFFFF", size=10)
             ))
 
             fig_prob.update_layout(
-                title=dict(text="<b>Probability Distribution (0 to 9)</b>", font=dict(size=14, color="#FFFFFF")),
+                title=dict(text="<b>Probability Distribution (Digits 0 to 9)</b>", font=dict(size=14, color="#FFFFFF")),
                 xaxis=dict(title=dict(text="Digit Class", font=dict(color="#94A3B8")), gridcolor="#1E293B", tickfont=dict(color="#E2E8F0")),
-                yaxis=dict(title=dict(text="Probability (%)", font=dict(color="#94A3B8")), gridcolor="#334155", tickfont=dict(color="#E2E8F0"), range=[0, 105]),
+                yaxis=dict(title=dict(text="Probability (%)", font=dict(color="#94A3B8")), gridcolor="#334155", tickfont=dict(color="#E2E8F0"), range=[0, max(100, max(probs)*100 + 15)]),
                 plot_bgcolor="#1E293B",
                 paper_bgcolor="#1E293B",
                 margin=dict(l=40, r=20, t=40, b=35),
-                height=240
+                height=230
             )
             st.plotly_chart(fig_prob, use_container_width=True)
+
+            # Optional User Feedback on Drawing
+            with st.expander("📝 Provide Optional Feedback on This Drawing", expanded=False):
+                st.caption("Feedback is recorded as subjective user feedback, NOT verified ground truth.")
+                col_fb1, col_fb2 = st.columns([2, 1])
+                with col_fb1:
+                    user_digit = st.selectbox(
+                        "What digit did you intend to draw?",
+                        options=list(range(10)),
+                        index=digit,
+                        key="user_feedback_digit"
+                    )
+                with col_fb2:
+                    st.write("")
+                    st.write("")
+                    if st.button("Save Feedback", use_container_width=True):
+                        if st.session_state["prediction_history"]:
+                            st.session_state["prediction_history"][0]["User Feedback"] = f"User drew {user_digit}"
+                            st.success("Feedback recorded!")
 
             # Collapsible 3-Model Cross-Comparison
             with st.expander("⚖️ Compare Prediction Across All Three Models", expanded=False):
@@ -334,20 +366,130 @@ def render_model_prediction():
                 rows = []
                 for mod_name, res in all_res.items():
                     d_pred = res["predicted_digit"]
-                    c_pct = f"{res['confidence']*100:.1f}%" if res["confidence"] is not None else "N/A"
+                    c_pct = f"{res['predicted_class_probability']*100:.2f}%" if res.get("predicted_class_probability") is not None else "N/A"
                     is_winner_flag = " (Selected Winner)" if mod_name == winning_model_name else ""
                     rows.append({
                         "Model": mod_name + is_winner_flag,
                         "Predicted Digit": str(d_pred) if d_pred is not None else "Err",
-                        "Confidence": c_pct,
+                        "Probability": c_pct,
+                        "Calibration": "Calibrated" if res.get("is_calibrated") else "Raw",
                         "Status": "Agreement ✅" if d_pred == digit else "Disagreement ⚠️"
                     })
                 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
+            # Preprocessed 28x28 Array Preview
+            with st.expander("🔬 View Preprocessed 28×28 MNIST Input Tensor", expanded=False):
+                col_pv1, col_pv2 = st.columns([1, 2])
+                with col_pv1:
+                    upscaled = (active_pred["norm_28"] * 255.0).astype(np.uint8)
+                    st.image(upscaled, width=140, caption="28×28 Centered MNIST Input", clamp=True)
+                with col_pv2:
+                    st.markdown("""
+                    <div style="font-size: 12.5px; color: #94A3B8; line-height: 1.5;">
+                        <b>Preprocessing Pipeline Steps Applied:</b><br/>
+                        1. Grayscale extraction from RGBA drawing.<br/>
+                        2. Bounding box cropping.<br/>
+                        3. Aspect-ratio preserving resize into 20×20 bounding box.<br/>
+                        4. Center-of-mass shift onto 28×28 matrix.<br/>
+                        5. Normalization to [0.0, 1.0] float32 feature tensor (1×784).
+                    </div>
+                    """, unsafe_allow_html=True)
+
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ---------------------------------------------------------------------------
-    # SECTION D: Prediction History Table
+    # SECTION D: Authentic Held-Out Test Set Performance & Confusion Matrix
+    # ---------------------------------------------------------------------------
+    st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">📋 Held-Out Test Set Evaluation (2,500 Unseen MNIST Samples)</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size: 13px; color: #94A3B8; margin-bottom: 12px;">'
+        'Dataset-level performance evaluated strictly on a held-out test partition of 2,500 unseen MNIST digits. '
+        'Notice the distinction: this evaluates overall dataset generalization, whereas the canvas above evaluates a single drawing.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    if winner_meta and "heldout_test_metrics" in winner_meta:
+        htm = winner_meta["heldout_test_metrics"]
+        
+        col_t1, col_t2, col_t3, col_t4, col_t5 = st.columns(5)
+        with col_t1:
+            st.markdown(f"""
+            <div class="metric-stat-card">
+                <div class="metric-stat-title">Test Accuracy</div>
+                <div class="metric-stat-number">{htm['accuracy']*100:.2f}%</div>
+                <div class="metric-stat-subtext">Unseen Test Set</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_t2:
+            st.markdown(f"""
+            <div class="metric-stat-card">
+                <div class="metric-stat-title">Macro F1-Score</div>
+                <div class="metric-stat-number">{htm['macro_f1']*100:.2f}%</div>
+                <div class="metric-stat-subtext">Harmonic Mean</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_t3:
+            st.markdown(f"""
+            <div class="metric-stat-card">
+                <div class="metric-stat-title">Macro Precision</div>
+                <div class="metric-stat-number">{htm['macro_precision']*100:.2f}%</div>
+                <div class="metric-stat-subtext">Class Precision</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_t4:
+            st.markdown(f"""
+            <div class="metric-stat-card">
+                <div class="metric-stat-title">Macro Recall</div>
+                <div class="metric-stat-number">{htm['macro_recall']*100:.2f}%</div>
+                <div class="metric-stat-subtext">Class Recall</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_t5:
+            cal_brier = htm.get('calibrated_brier_score', 0.0)
+            raw_brier = htm.get('uncalibrated_brier_score', 0.0)
+            st.markdown(f"""
+            <div class="metric-stat-card">
+                <div class="metric-stat-title">Brier Score</div>
+                <div class="metric-stat-number" style="color: #38BDF8;">{cal_brier:.4f}</div>
+                <div class="metric-stat-subtext">Raw: {raw_brier:.4f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Plotly Heatmap of Authentic Confusion Matrix
+        if "confusion_matrix" in winner_meta:
+            cm = np.array(winner_meta["confusion_matrix"])
+            labels = [f"Digit {d}" for d in range(10)]
+
+            fig_cm = go.Figure(data=go.Heatmap(
+                z=cm,
+                x=labels,
+                y=labels,
+                colorscale="Blues",
+                text=cm,
+                texttemplate="%{text}",
+                textfont=dict(size=10),
+                hovertemplate="Actual: %{y}<br>Predicted: %{x}<br>Count: %{z}<extra></extra>"
+            ))
+            fig_cm.update_layout(
+                title=dict(text=f"<b>Held-Out Test Confusion Matrix ({winning_model_name})</b>", font=dict(size=14, color="#FFFFFF")),
+                xaxis=dict(title=dict(text="Predicted Label", font=dict(color="#94A3B8")), tickfont=dict(color="#E2E8F0")),
+                yaxis=dict(title=dict(text="Actual True Label", font=dict(color="#94A3B8")), tickfont=dict(color="#E2E8F0"), autorange="reversed"),
+                plot_bgcolor="#1E293B",
+                paper_bgcolor="#1E293B",
+                margin=dict(l=60, r=20, t=45, b=40),
+                height=360
+            )
+            st.plotly_chart(fig_cm, use_container_width=True)
+
+    else:
+        st.info("Held-out test set evaluation metrics will appear once model artifacts with metadata are loaded.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ---------------------------------------------------------------------------
+    # SECTION E: Prediction History Table
     # ---------------------------------------------------------------------------
     history = st.session_state.get("prediction_history", [])
     if history:
