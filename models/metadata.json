@@ -2,8 +2,13 @@
   "project": "SeedLab AI",
   "dataset": "MNIST 70,000 Handwritten Digits (National Institute of Standards and Technology)",
   "dataset_source": "https://www.kaggle.com/datasets/hojjatk/mnist-dataset",
-  "train_samples": 10000,
-  "heldout_test_samples": 2500,
+  "data_partitions": {
+    "total_sampled": 12500,
+    "train_samples": 8000,
+    "validation_samples": 2000,
+    "heldout_test_samples": 2500,
+    "methodology": "3-way stratified split: Train (8k) for base fitting, Val (2k) for seed comparison & model selection, Test (2.5k) strictly untouched for final evaluation"
+  },
   "num_classes": 10,
   "class_labels": [
     0,
@@ -29,8 +34,8 @@
   "calibration": {
     "status": "Calibrated",
     "method": "sigmoid (Platt scaling)",
-    "cv_scheme": "3-fold cross-validation on training partition",
-    "data_leakage_prevention": "Test set was strictly held out and NEVER seen during base training or calibration"
+    "cv_scheme": "3-fold cross-validation on 8,000-sample training partition",
+    "data_leakage_prevention": "Validation and Held-out Test sets were strictly NEVER seen during base training or calibration"
   },
   "preprocessing": {
     "flatten": true,
@@ -45,198 +50,62 @@
   },
   "models_evaluated": {
     "Random Forest": {
-      "representative_seed": 4,
+      "representative_seed": 3,
       "is_calibrated": true,
       "calibration_method": "CalibratedClassifierCV(method='sigmoid', cv=3)",
       "heldout_test_metrics": {
-        "accuracy": 0.9448,
-        "macro_precision": 0.9447,
-        "macro_recall": 0.9443,
-        "macro_f1": 0.9444,
-        "uncalibrated_brier_score": 0.162,
-        "calibrated_brier_score": 0.088,
-        "brier_improvement": 0.0739
+        "accuracy": 0.9432,
+        "macro_precision": 0.943,
+        "macro_recall": 0.9427,
+        "macro_f1": 0.9428,
+        "uncalibrated_brier_score": 0.1703,
+        "calibrated_brier_score": 0.0913,
+        "brier_improvement": 0.079
       },
       "confusion_matrix": [
         [
-          236,
+          240,
           0,
-          2,
+          1,
+          0,
           1,
           1,
-          1,
-          1,
+          0,
           0,
           4,
-          1
+          0
         ],
         [
           0,
           276,
-          0,
-          2,
+          1,
+          1,
           0,
           0,
           1,
-          0,
           1,
-          1
-        ],
-        [
-          4,
-          0,
-          234,
-          2,
-          4,
-          0,
-          2,
           1,
-          3,
           0
         ],
         [
-          1,
+          3,
           0,
-          6,
-          236,
-          0,
-          2,
-          0,
+          232,
+          3,
           4,
+          1,
+          2,
+          1,
+          4,
+          0
+        ],
+        [
+          0,
+          1,
+          7,
+          231,
+          0,
           5,
-          1
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          237,
-          0,
-          0,
-          2,
-          0,
-          5
-        ],
-        [
-          2,
-          2,
-          2,
-          5,
-          1,
-          208,
-          1,
-          0,
-          3,
-          1
-        ],
-        [
-          2,
-          1,
-          0,
-          0,
-          0,
-          1,
-          241,
-          0,
-          1,
-          0
-        ],
-        [
-          1,
-          4,
-          6,
-          0,
-          1,
-          0,
-          0,
-          240,
-          2,
-          6
-        ],
-        [
-          0,
-          3,
-          4,
-          4,
-          2,
-          2,
-          2,
-          0,
-          225,
-          2
-        ],
-        [
-          0,
-          0,
-          0,
-          4,
-          6,
-          4,
-          0,
-          2,
-          3,
-          229
-        ]
-      ]
-    },
-    "MLP Neural Network": {
-      "representative_seed": 1,
-      "is_calibrated": true,
-      "calibration_method": "CalibratedClassifierCV(method='sigmoid', cv=3)",
-      "heldout_test_metrics": {
-        "accuracy": 0.942,
-        "macro_precision": 0.9422,
-        "macro_recall": 0.941,
-        "macro_f1": 0.9414,
-        "uncalibrated_brier_score": 0.0891,
-        "calibrated_brier_score": 0.0893,
-        "brier_improvement": -0.0001
-      },
-      "confusion_matrix": [
-        [
-          237,
-          0,
-          4,
-          0,
-          1,
-          1,
-          1,
-          0,
-          3,
-          0
-        ],
-        [
-          0,
-          278,
-          1,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          1
-        ],
-        [
-          0,
-          2,
-          234,
-          3,
-          2,
-          0,
-          3,
-          1,
-          5,
-          0
-        ],
-        [
-          0,
-          0,
-          8,
-          235,
-          0,
-          1,
           0,
           5,
           4,
@@ -248,6 +117,142 @@
           3,
           0,
           231,
+          1,
+          2,
+          2,
+          0,
+          5
+        ],
+        [
+          3,
+          2,
+          2,
+          4,
+          1,
+          208,
+          1,
+          1,
+          2,
+          1
+        ],
+        [
+          2,
+          1,
+          0,
+          0,
+          0,
+          1,
+          240,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          2,
+          6,
+          1,
+          1,
+          0,
+          0,
+          242,
+          2,
+          6
+        ],
+        [
+          0,
+          4,
+          1,
+          5,
+          2,
+          1,
+          1,
+          0,
+          228,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          5,
+          4,
+          2,
+          0,
+          3,
+          4,
+          230
+        ]
+      ]
+    },
+    "MLP Neural Network": {
+      "representative_seed": 0,
+      "is_calibrated": true,
+      "calibration_method": "CalibratedClassifierCV(method='sigmoid', cv=3)",
+      "heldout_test_metrics": {
+        "accuracy": 0.9368,
+        "macro_precision": 0.9375,
+        "macro_recall": 0.936,
+        "macro_f1": 0.9365,
+        "uncalibrated_brier_score": 0.0897,
+        "calibrated_brier_score": 0.0992,
+        "brier_improvement": -0.0095
+      },
+      "confusion_matrix": [
+        [
+          235,
+          0,
+          3,
+          1,
+          0,
+          1,
+          3,
+          1,
+          2,
+          1
+        ],
+        [
+          0,
+          278,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          2,
+          233,
+          3,
+          1,
+          0,
+          4,
+          2,
+          5,
+          0
+        ],
+        [
+          0,
+          1,
+          5,
+          233,
+          1,
+          3,
+          1,
+          5,
+          5,
+          1
+        ],
+        [
+          0,
+          0,
+          7,
+          0,
+          227,
           0,
           2,
           1,
@@ -255,64 +260,64 @@
           7
         ],
         [
+          1,
+          1,
+          0,
+          5,
           2,
+          205,
+          5,
           0,
-          0,
-          9,
-          4,
-          201,
-          4,
-          0,
-          4,
+          5,
           1
         ],
         [
-          1,
-          2,
-          1,
-          0,
-          0,
-          1,
-          239,
           0,
           2,
+          2,
+          1,
+          1,
+          1,
+          238,
+          0,
+          1,
           0
         ],
         [
           1,
           5,
+          3,
           2,
-          0,
           1,
           0,
           0,
-          244,
-          1,
-          6
+          241,
+          0,
+          7
         ],
         [
           1,
           3,
           2,
-          5,
+          6,
           1,
-          4,
           0,
+          3,
           0,
-          225,
-          3
+          224,
+          4
         ],
         [
           0,
           0,
           1,
           4,
-          5,
+          6,
           1,
           0,
-          3,
-          3,
-          231
+          4,
+          4,
+          228
         ]
       ]
     },
@@ -321,25 +326,25 @@
       "is_calibrated": true,
       "calibration_method": "CalibratedClassifierCV(method='sigmoid', cv=3)",
       "heldout_test_metrics": {
-        "accuracy": 0.9052,
-        "macro_precision": 0.906,
-        "macro_recall": 0.9034,
-        "macro_f1": 0.9039,
-        "uncalibrated_brier_score": 0.1322,
-        "calibrated_brier_score": 0.2059,
-        "brier_improvement": -0.0737
+        "accuracy": 0.9048,
+        "macro_precision": 0.9057,
+        "macro_recall": 0.903,
+        "macro_f1": 0.9035,
+        "uncalibrated_brier_score": 0.136,
+        "calibrated_brier_score": 0.2112,
+        "brier_improvement": -0.0752
       },
       "confusion_matrix": [
         [
           236,
           0,
-          3,
-          1,
-          1,
-          0,
           2,
+          2,
+          1,
           0,
-          4,
+          1,
+          0,
+          5,
           0
         ],
         [
@@ -355,61 +360,61 @@
           0
         ],
         [
-          2,
-          5,
-          213,
-          7,
-          7,
           1,
-          6,
+          5,
+          216,
+          4,
+          5,
+          2,
+          8,
           1,
           8,
           0
         ],
         [
           1,
-          2,
+          1,
+          8,
+          219,
+          1,
           7,
-          223,
-          0,
-          6,
           0,
           9,
-          5,
-          2
+          6,
+          3
         ],
         [
           0,
-          1,
+          2,
           2,
           1,
           230,
-          1,
-          4,
+          0,
+          3,
           0,
           0,
-          5
+          6
         ],
         [
           3,
           5,
-          3,
+          2,
           11,
           5,
           186,
-          7,
+          8,
           0,
           4,
           1
         ],
         [
           1,
-          3,
-          1,
-          2,
           4,
           1,
-          233,
+          1,
+          5,
+          1,
+          232,
           0,
           1,
           0
@@ -417,8 +422,8 @@
         [
           2,
           6,
-          4,
-          0,
+          3,
+          1,
           0,
           0,
           0,
@@ -428,14 +433,14 @@
         ],
         [
           0,
-          11,
-          1,
-          9,
+          14,
           1,
           8,
+          1,
+          7,
           0,
           0,
-          207,
+          206,
           7
         ],
         [
@@ -446,12 +451,12 @@
           13,
           2,
           0,
-          8,
+          6,
           1,
-          214
+          216
         ]
       ]
     }
   },
-  "export_timestamp": "2026-11-17T12:46:10Z"
+  "export_timestamp": "2026-11-18T01:31:51Z"
 }

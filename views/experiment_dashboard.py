@@ -55,7 +55,14 @@ def render_experiment_dashboard():
         st.session_state["model_selection_results"] = None
     else:
         try:
-            raw_df = pd.read_csv(uploaded_file)
+            uploaded_file.seek(0)
+            try:
+                raw_df = pd.read_csv(uploaded_file, encoding="utf-8-sig")
+            except UnicodeDecodeError:
+                uploaded_file.seek(0)
+                raw_df = pd.read_csv(uploaded_file, encoding="latin-1")
+            uploaded_file.seek(0)
+
             if raw_df.empty:
                 validation_error = "The uploaded CSV file is empty."
             else:
